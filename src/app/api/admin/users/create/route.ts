@@ -1,12 +1,13 @@
 import { NextRequest, NextResponse } from "next/server";
 import { getAdminSession } from "@/lib/auth";
 import { prisma } from "@/lib/prisma";
+import { hashPassword } from "@/lib/password";
 
 export async function POST(request: NextRequest) {
   const session = await getAdminSession();
   if (!session) return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
 
-  const { email, trialHours, subscriptionDays } = await request.json();
+  const { email, trialHours, subscriptionDays, password } = await request.json();
 
   if (!email) {
     return NextResponse.json({ error: "Email is required" }, { status: 400 });
@@ -24,6 +25,10 @@ export async function POST(request: NextRequest) {
     email,
     trialExpiresAt,
   };
+
+  if (password) {
+    data.passwordHash = hashPassword(password);
+  }
 
   if (subscriptionDays) {
     data.subscriptionActive = true;

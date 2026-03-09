@@ -32,6 +32,7 @@ export default function AdminDashboard() {
   const [newEmail, setNewEmail] = useState("");
   const [newTrialHours, setNewTrialHours] = useState("3");
   const [newSubDays, setNewSubDays] = useState("");
+  const [newPassword, setNewPassword] = useState("");
   const [actionLoading, setActionLoading] = useState(false);
   const [toast, setToast] = useState("");
 
@@ -81,6 +82,7 @@ export default function AdminDashboard() {
       headers: { "Content-Type": "application/json" },
       body: JSON.stringify({
         email: newEmail.trim(),
+        password: newPassword || undefined,
         trialHours: Number(newTrialHours) || 3,
         subscriptionDays: newSubDays ? Number(newSubDays) : undefined,
       }),
@@ -96,6 +98,7 @@ export default function AdminDashboard() {
 
     setModal(null);
     setNewEmail("");
+    setNewPassword("");
     setNewTrialHours("3");
     setNewSubDays("");
     showToast("User created");
@@ -374,6 +377,16 @@ export default function AdminDashboard() {
                       onChange={(e) => setNewEmail(e.target.value)}
                       placeholder="user@example.com"
                       autoFocus
+                      className="w-full px-3.5 py-2.5 bg-surface-2 border border-border rounded-xl text-sm placeholder:text-text-muted focus:outline-none focus:border-brand-500/50 transition-all"
+                    />
+                  </div>
+                  <div>
+                    <label className="block text-xs font-medium text-text-secondary mb-1.5">Password (optional)</label>
+                    <input
+                      type="text"
+                      value={newPassword}
+                      onChange={(e) => setNewPassword(e.target.value)}
+                      placeholder="Leave empty for OTP-only login"
                       className="w-full px-3.5 py-2.5 bg-surface-2 border border-border rounded-xl text-sm placeholder:text-text-muted focus:outline-none focus:border-brand-500/50 transition-all"
                     />
                   </div>
