@@ -1,13 +1,16 @@
 "use client";
 
 import { useState } from "react";
-import { useRouter } from "next/navigation";
+import { useRouter, useSearchParams } from "next/navigation";
+import { Suspense } from "react";
 
 type AuthMode = "choose" | "otp_email" | "otp_verify" | "password";
 
-export default function LoginPage() {
+function LoginContent() {
   const router = useRouter();
-  const [mode, setMode] = useState<AuthMode>("choose");
+  const searchParams = useSearchParams();
+  const isSignup = searchParams.get("mode") === "signup";
+  const [mode, setMode] = useState<AuthMode>(isSignup ? "otp_email" : "choose");
   const [email, setEmail] = useState("");
   const [code, setCode] = useState("");
   const [password, setPassword] = useState("");
@@ -102,8 +105,8 @@ export default function LoginPage() {
             </h1>
           </div>
           <p className="text-text-muted text-sm">
-            {mode === "choose" && "Sign in or create an account"}
-            {mode === "otp_email" && "We'll send a verification code to your email"}
+            {mode === "choose" && "Sign in to your account"}
+            {mode === "otp_email" && (isSignup ? "Create your account with email verification" : "We'll send a verification code to your email")}
             {mode === "otp_verify" && "Enter the code we sent to your email"}
             {mode === "password" && "Sign in with your email and password"}
           </p>
@@ -148,8 +151,19 @@ export default function LoginPage() {
               >
                 Sign in with Email Code
               </button>
-              <p className="text-center text-[11px] text-text-muted pt-1">
-                New user? Use Email Code to register automatically.
+              <div className="relative flex items-center gap-3 pt-1">
+                <div className="flex-1 h-px bg-border" />
+                <span className="text-[11px] text-text-muted">or</span>
+                <div className="flex-1 h-px bg-border" />
+              </div>
+              <p className="text-center text-[11px] text-text-muted">
+                Don&apos;t have an account?{" "}
+                <button
+                  onClick={() => { reset(); setMode("otp_email"); }}
+                  className="text-brand-400 hover:underline cursor-pointer"
+                >
+                  Sign up with Email Code
+                </button>
               </p>
             </div>
           )}
@@ -282,5 +296,13 @@ function BackButton({ onClick, label = "Back" }: { onClick: () => void; label?: 
     >
       {label}
     </button>
+  );
+}
+
+export default function LoginPage() {
+  return (
+    <Suspense>
+      <LoginContent />
+    </Suspense>
   );
 }
