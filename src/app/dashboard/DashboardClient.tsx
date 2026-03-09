@@ -148,7 +148,7 @@ export default function DashboardClient({
     setError("");
 
     if (!user.isActive) {
-      setError("Your trial has expired. Please subscribe to continue.");
+      setError(t.dashboard.trialExpired);
       return;
     }
 
@@ -203,7 +203,7 @@ export default function DashboardClient({
     }
 
     if (data.chats.length === 0) {
-      setError("No groups found. Add the bot to a group, send a message, then try again.");
+      setError(t.dashboard.noGroupsFound);
       return;
     }
 
@@ -236,11 +236,11 @@ export default function DashboardClient({
     setPasswordSaved(false);
 
     if (newPassword.length < 6) {
-      setPasswordError("Password must be at least 6 characters");
+      setPasswordError(t.dashboard.passwordMinLength);
       return;
     }
     if (newPassword !== confirmPassword) {
-      setPasswordError("Passwords do not match");
+      setPasswordError(t.dashboard.passwordsDoNotMatch);
       return;
     }
 
@@ -280,7 +280,7 @@ export default function DashboardClient({
             <IconTwitter className="w-5 h-5 text-brand-400" />
           </div>
           <h1 className="text-2xl font-bold tracking-tight">
-            {t.dashboard.monitoredAccounts.includes("监控") ? "推管" : "Tweet"}<span className="text-brand-400">Pipe</span>
+            {t.dashboard.monitoredAccounts.includes("监控") ? "推特" : "Tweet"}<span className="text-brand-400">Pipe</span>
           </h1>
         </div>
         <div className="flex items-center gap-6">
@@ -347,16 +347,24 @@ export default function DashboardClient({
       <section className="rounded-2xl border border-border bg-surface-1 overflow-hidden">
         <div className="px-6 py-4 border-b border-border flex items-center gap-2.5">
           <IconTelegram className="w-[18px] h-[18px] text-brand-400" />
-          <h2 className="text-sm font-semibold">Telegram Configuration</h2>
+          <h2 className="text-sm font-semibold">{t.dashboard.telegramConfig}</h2>
         </div>
 
         <div className="p-6 space-y-5">
           {/* Steps Guide */}
           <div className="grid grid-cols-1 sm:grid-cols-3 gap-3">
             {[
-              { step: "1", text: <>Get a Bot Token from <a href="https://t.me/BotFather" target="_blank" className="text-brand-400 hover:underline">@BotFather</a></> },
-              { step: "2", text: "Add the bot to your group and make it admin" },
-              { step: "3", text: "Send a message in the group, then detect below" },
+              {
+                step: "1", text: t.dashboard.steps[0].includes("@BotFather") ? (
+                  <>
+                    {t.dashboard.steps[0].split("@BotFather")[0]}
+                    <a href="https://t.me/BotFather" target="_blank" className="text-brand-400 hover:underline">@BotFather</a>
+                    {t.dashboard.steps[0].split("@BotFather")[1]}
+                  </>
+                ) : t.dashboard.steps[0]
+              },
+              { step: "2", text: t.dashboard.steps[1] },
+              { step: "3", text: t.dashboard.steps[2] },
             ].map((item) => (
               <div key={item.step} className="flex gap-2.5 p-3 rounded-xl bg-surface-2/50">
                 <span className="shrink-0 w-5 h-5 rounded-full bg-brand-500/10 text-brand-400 text-[10px] font-bold flex items-center justify-center">
@@ -370,10 +378,10 @@ export default function DashboardClient({
           <form onSubmit={saveConfig} className="space-y-4">
             {/* Bot Token Input */}
             <div>
-              <label className="block text-xs font-medium text-text-secondary mb-1.5">Bot Token</label>
+              <label className="block text-xs font-medium text-text-secondary mb-1.5">{t.dashboard.botToken}</label>
               <input
                 type="text"
-                placeholder={user.botToken || "Paste your bot token here"}
+                placeholder={user.botToken || t.dashboard.pasteBotToken}
                 value={botToken}
                 onChange={(e) => setBotToken(e.target.value)}
                 className="w-full px-3.5 py-2.5 bg-surface-2 border border-border rounded-xl text-sm font-mono placeholder:text-text-muted focus:outline-none focus:border-brand-500/50 focus:ring-1 focus:ring-brand-500/20 transition-all"
@@ -393,12 +401,12 @@ export default function DashboardClient({
                     <circle className="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" strokeWidth="4" fill="none" />
                     <path className="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4z" />
                   </svg>
-                  Detecting...
+                  {t.dashboard.detecting}
                 </>
               ) : (
                 <>
                   <IconSearch />
-                  Detect Groups
+                  {t.dashboard.detectGroups}
                 </>
               )}
             </button>
@@ -407,7 +415,7 @@ export default function DashboardClient({
             {detectedChats.length > 0 && (
               <div className="space-y-2 animate-fade-in">
                 <div className="text-xs font-medium text-text-muted">
-                  Select groups to forward tweets to:
+                  {t.dashboard.selectGroups}
                 </div>
                 {detectedChats.map((c) => {
                   const idStr = String(c.id);
@@ -445,7 +453,7 @@ export default function DashboardClient({
             {selectedChatIds.length > 0 && (
               <div className="space-y-2">
                 <div className="text-xs font-medium text-text-muted">
-                  {selectedChatIds.length} group{selectedChatIds.length > 1 ? "s" : ""} selected
+                  {selectedChatIds.length} {t.dashboard.groupsSelected}
                 </div>
                 <div className="flex flex-wrap gap-1.5">
                   {selectedChatIds.map((id) => (
@@ -482,7 +490,7 @@ export default function DashboardClient({
                   onClick={addManualChatId}
                   className="px-3.5 py-2 bg-surface-3 hover:bg-surface-4 border border-border rounded-xl text-sm transition-colors cursor-pointer"
                 >
-                  Add
+                  {t.dashboard.add}
                 </button>
               </div>
             ) : (
@@ -491,7 +499,7 @@ export default function DashboardClient({
                 onClick={() => setShowManualInput(true)}
                 className="text-xs text-text-muted hover:text-text-secondary transition-colors cursor-pointer"
               >
-                + Add Chat ID manually
+                {t.dashboard.addChatIdManually}
               </button>
             )}
 
@@ -505,9 +513,9 @@ export default function DashboardClient({
             >
               {configSaved ? (
                 <span className="inline-flex items-center gap-1.5">
-                  <IconCheck /> Saved
+                  <IconCheck /> {t.dashboard.saved}
                 </span>
-              ) : "Save Configuration"}
+              ) : t.dashboard.saveConfiguration}
             </button>
           </form>
         </div>
