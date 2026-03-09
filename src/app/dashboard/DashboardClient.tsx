@@ -413,14 +413,15 @@ export default function DashboardClient({
                   const idStr = String(c.id);
                   const isSelected = selectedChatIds.includes(idStr);
                   return (
-                    <label
+                    <div
                       key={c.id}
+                      onClick={() => toggleChatId(idStr)}
                       className={`flex items-center gap-3 p-3 rounded-xl cursor-pointer transition-all ${isSelected
                         ? "bg-brand-500/[0.06] border border-brand-500/25 shadow-[0_0_0_1px_rgba(59,130,246,0.08)]"
                         : "bg-surface-2 border border-border hover:border-border-hover"
                         }`}
                     >
-                      <div className={`w-4.5 h-4.5 rounded-md border flex items-center justify-center transition-all ${isSelected
+                      <div className={`w-5 h-5 rounded-md border-2 flex items-center justify-center shrink-0 transition-all ${isSelected
                         ? "bg-brand-500 border-brand-500 text-white"
                         : "border-border-hover bg-surface-3"
                         }`}>
@@ -434,7 +435,7 @@ export default function DashboardClient({
                           {c.type} &middot; {c.id}
                         </div>
                       </div>
-                    </label>
+                    </div>
                   );
                 })}
               </div>
