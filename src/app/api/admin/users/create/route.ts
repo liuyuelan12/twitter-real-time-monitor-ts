@@ -19,7 +19,9 @@ export async function POST(request: NextRequest) {
   }
 
   const now = new Date();
-  const trialExpiresAt = new Date(now.getTime() + (trialHours || 3) * 60 * 60 * 1000);
+  const hours = Number(trialHours);
+  const safeHours = isNaN(hours) || hours <= 0 ? 3 : hours;
+  const trialExpiresAt = new Date(now.getTime() + safeHours * 60 * 60 * 1000);
 
   const data: Record<string, unknown> = {
     email,
@@ -30,9 +32,10 @@ export async function POST(request: NextRequest) {
     data.passwordHash = hashPassword(password);
   }
 
-  if (subscriptionDays) {
+  const subDays = Number(subscriptionDays);
+  if (subDays > 0) {
     data.subscriptionActive = true;
-    data.subscriptionExpiresAt = new Date(now.getTime() + subscriptionDays * 24 * 60 * 60 * 1000);
+    data.subscriptionExpiresAt = new Date(now.getTime() + subDays * 24 * 60 * 60 * 1000);
   }
 
   const user = await prisma.user.create({ data: data as any });
