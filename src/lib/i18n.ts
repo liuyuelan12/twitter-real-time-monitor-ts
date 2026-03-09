@@ -10,7 +10,7 @@ export const translations = {
         stats: {
             realtime: "Real-time",
             realtimeLabel: "60s polling interval",
-            accounts: "10",
+            accounts: "30",
             accountsLabel: "accounts per user",
             trial: "3h",
             trialLabel: "free trial",
@@ -95,7 +95,7 @@ export const translations = {
         stats: {
             realtime: "实时",
             realtimeLabel: "60秒轮询间隔",
-            accounts: "10",
+            accounts: "30",
             accountsLabel: "每个用户监控上限",
             trial: "3小时",
             trialLabel: "免费试用",

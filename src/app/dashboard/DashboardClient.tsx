@@ -530,7 +530,7 @@ export default function DashboardClient({
               <h3 className="text-lg font-bold">{t.dashboard.monitoredAccounts}</h3>
             </div>
             <span className="text-xs font-bold px-3 py-1 bg-brand-500/10 text-brand-400 rounded-full border border-brand-500/20">
-              {monitors.length}/10
+              {monitors.length}/30
             </span>
           </div>
 

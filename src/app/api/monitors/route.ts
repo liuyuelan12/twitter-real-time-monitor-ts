@@ -26,10 +26,10 @@ export async function POST(request: NextRequest) {
 
   const username = twitterUsername.replace(/^@/, "").trim();
 
-  // Check limit (max 10 monitors per user)
+  // Check limit (max 30 monitors per user)
   const count = await prisma.monitor.count({ where: { userId: session.userId } });
-  if (count >= 10) {
-    return NextResponse.json({ error: "Maximum 10 monitors allowed" }, { status: 400 });
+  if (count >= 30) {
+    return NextResponse.json({ error: "Maximum 30 monitors allowed" }, { status: 400 });
   }
 
   try {

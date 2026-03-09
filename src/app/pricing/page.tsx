@@ -19,7 +19,7 @@ export default function PricingPage() {
           </div>
           <ul className="space-y-2 text-gray-400 text-sm">
             <li>3 hours of monitoring</li>
-            <li>Up to 10 Twitter accounts</li>
+            <li>Up to 30 Twitter accounts</li>
             <li>Real-time Telegram forwarding</li>
           </ul>
         </div>
