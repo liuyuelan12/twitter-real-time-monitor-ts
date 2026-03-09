@@ -47,7 +47,8 @@ async function pollAllMonitors(): Promise<void> {
   });
 
   for (const user of users) {
-    if (!user.botToken || !user.chatId || user.monitors.length === 0) continue;
+    const chatIds = user.chatId ? user.chatId.split(",").filter(Boolean) : [];
+    if (!user.botToken || chatIds.length === 0 || user.monitors.length === 0) continue;
 
     const telegramService = new TelegramService(user.botToken);
 
@@ -72,15 +73,16 @@ async function pollAllMonitors(): Promise<void> {
           if (seen.has(tweet.id)) continue;
           seen.add(tweet.id);
 
-          try {
-            await telegramService.sendTweet(user.chatId, tweet);
-            logger.info(`Forwarded tweet ${tweet.id} (@${monitor.twitterUsername}) -> ${user.email}`);
-            // Delay between sends to avoid Telegram rate limit
-            await sleep(1500);
-          } catch (err: any) {
-            logger.error(`Failed to forward tweet ${tweet.id} for ${user.email}`, {
-              error: err?.message || String(err),
-            });
+          for (const chatId of chatIds) {
+            try {
+              await telegramService.sendTweet(chatId, tweet);
+              logger.info(`Forwarded tweet ${tweet.id} (@${monitor.twitterUsername}) -> ${user.email} [${chatId}]`);
+              await sleep(1500);
+            } catch (err: any) {
+              logger.error(`Failed to forward tweet ${tweet.id} to ${chatId} for ${user.email}`, {
+                error: err?.message || String(err),
+              });
+            }
           }
         }
 

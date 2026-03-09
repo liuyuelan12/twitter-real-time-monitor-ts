@@ -6,18 +6,19 @@ export async function PUT(request: NextRequest) {
   const session = await getSession();
   if (!session) return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
 
-  const { botToken, chatId } = await request.json();
+  const { botToken, chatIds } = await request.json();
+
+  const updateData: Record<string, unknown> = {};
+  if (botToken !== undefined) updateData.botToken = botToken || null;
+  if (chatIds !== undefined) updateData.chatId = Array.isArray(chatIds) ? chatIds.join(",") : null;
 
   const user = await prisma.user.update({
     where: { id: session.userId },
-    data: {
-      botToken: botToken || null,
-      chatId: chatId || null,
-    },
+    data: updateData,
   });
 
   return NextResponse.json({
     botToken: user.botToken ? "***configured***" : null,
-    chatId: user.chatId,
+    chatIds: user.chatId ? user.chatId.split(",") : [],
   });
 }

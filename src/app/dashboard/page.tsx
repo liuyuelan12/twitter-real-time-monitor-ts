@@ -13,7 +13,7 @@ export default async function DashboardPage() {
       user={{
         email: user.email,
         botToken: user.botToken ? "***configured***" : "",
-        chatId: user.chatId ?? "",
+        chatIds: user.chatId ? user.chatId.split(",") : [],
         trialExpiresAt: user.trialExpiresAt.toISOString(),
         subscriptionActive: user.subscriptionActive,
         subscriptionExpiresAt: user.subscriptionExpiresAt?.toISOString() ?? null,
