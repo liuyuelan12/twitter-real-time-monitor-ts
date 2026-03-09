@@ -3,13 +3,22 @@
 import { useState } from "react";
 import { useRouter } from "next/navigation";
 
+type AuthMode = "choose" | "otp_email" | "otp_verify" | "password";
+
 export default function LoginPage() {
   const router = useRouter();
+  const [mode, setMode] = useState<AuthMode>("choose");
   const [email, setEmail] = useState("");
   const [code, setCode] = useState("");
-  const [step, setStep] = useState<"email" | "otp">("email");
+  const [password, setPassword] = useState("");
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState("");
+
+  function reset() {
+    setError("");
+    setCode("");
+    setPassword("");
+  }
 
   async function handleSendOtp(e: React.FormEvent) {
     e.preventDefault();
@@ -30,7 +39,7 @@ export default function LoginPage() {
       return;
     }
 
-    setStep("otp");
+    setMode("otp_verify");
   }
 
   async function handleVerifyOtp(e: React.FormEvent) {
@@ -42,6 +51,28 @@ export default function LoginPage() {
       method: "POST",
       headers: { "Content-Type": "application/json" },
       body: JSON.stringify({ email, code }),
+    });
+
+    const data = await res.json();
+    setLoading(false);
+
+    if (!res.ok) {
+      setError(data.error);
+      return;
+    }
+
+    router.push("/dashboard");
+  }
+
+  async function handlePasswordLogin(e: React.FormEvent) {
+    e.preventDefault();
+    setLoading(true);
+    setError("");
+
+    const res = await fetch("/api/auth/login", {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({ email, password }),
     });
 
     const data = await res.json();
@@ -71,9 +102,10 @@ export default function LoginPage() {
             </h1>
           </div>
           <p className="text-text-muted text-sm">
-            {step === "email"
-              ? "Sign in to manage your monitors"
-              : "We sent a verification code to your email"}
+            {mode === "choose" && "Sign in or create an account"}
+            {mode === "otp_email" && "We'll send a verification code to your email"}
+            {mode === "otp_verify" && "Enter the code we sent to your email"}
+            {mode === "password" && "Sign in with your email and password"}
           </p>
         </div>
 
@@ -89,15 +121,46 @@ export default function LoginPage() {
 
         {/* Form Card */}
         <div className="p-6 bg-surface-1 border border-border rounded-2xl">
-          {step === "email" ? (
-            <form onSubmit={handleSendOtp} className="space-y-4">
+
+          {/* Mode: Choose */}
+          {mode === "choose" && (
+            <div className="space-y-3">
               <div>
-                <label className="block text-xs font-medium text-text-secondary mb-1.5">
-                  Email address
-                </label>
+                <label className="block text-xs font-medium text-text-secondary mb-1.5">Email address</label>
                 <input
                   type="email"
                   placeholder="you@example.com"
+                  value={email}
+                  onChange={(e) => setEmail(e.target.value)}
+                  autoFocus
+                  className="w-full px-3.5 py-2.5 bg-surface-2 border border-border rounded-xl text-sm placeholder:text-text-muted focus:outline-none focus:border-brand-500/50 focus:ring-1 focus:ring-brand-500/20 transition-all"
+                />
+              </div>
+              <button
+                onClick={() => { if (!email.trim()) { setError("Please enter your email"); return; } reset(); setMode("password"); }}
+                className="w-full py-2.5 bg-brand-500 hover:bg-brand-600 rounded-xl text-sm font-semibold transition-colors cursor-pointer"
+              >
+                Sign in with Password
+              </button>
+              <button
+                onClick={() => { if (!email.trim()) { setError("Please enter your email"); return; } reset(); setMode("otp_email"); }}
+                className="w-full py-2.5 bg-surface-3 hover:bg-surface-4 border border-border rounded-xl text-sm font-medium transition-colors cursor-pointer"
+              >
+                Sign in with Email Code
+              </button>
+              <p className="text-center text-[11px] text-text-muted pt-1">
+                New user? Use Email Code to register automatically.
+              </p>
+            </div>
+          )}
+
+          {/* Mode: OTP - enter email */}
+          {mode === "otp_email" && (
+            <form onSubmit={handleSendOtp} className="space-y-4">
+              <div>
+                <label className="block text-xs font-medium text-text-secondary mb-1.5">Email address</label>
+                <input
+                  type="email"
                   value={email}
                   onChange={(e) => setEmail(e.target.value)}
                   required
@@ -108,20 +171,16 @@ export default function LoginPage() {
               <button
                 type="submit"
                 disabled={loading}
-                className="w-full py-2.5 bg-brand-500 hover:bg-brand-600 disabled:opacity-50 disabled:hover:bg-brand-500 rounded-xl text-sm font-semibold transition-colors cursor-pointer"
+                className="w-full py-2.5 bg-brand-500 hover:bg-brand-600 disabled:opacity-50 rounded-xl text-sm font-semibold transition-colors cursor-pointer"
               >
-                {loading ? (
-                  <span className="inline-flex items-center gap-2">
-                    <svg className="animate-spin h-4 w-4" viewBox="0 0 24 24">
-                      <circle className="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" strokeWidth="4" fill="none"/>
-                      <path className="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4z"/>
-                    </svg>
-                    Sending...
-                  </span>
-                ) : "Continue with Email"}
+                {loading ? <Spinner text="Sending..." /> : "Send Verification Code"}
               </button>
+              <BackButton onClick={() => { reset(); setMode("choose"); }} />
             </form>
-          ) : (
+          )}
+
+          {/* Mode: OTP - verify code */}
+          {mode === "otp_verify" && (
             <form onSubmit={handleVerifyOtp} className="space-y-4">
               <div className="text-center mb-2">
                 <div className="text-sm text-text-secondary">
@@ -129,9 +188,7 @@ export default function LoginPage() {
                 </div>
               </div>
               <div>
-                <label className="block text-xs font-medium text-text-secondary mb-1.5">
-                  Verification code
-                </label>
+                <label className="block text-xs font-medium text-text-secondary mb-1.5">Verification code</label>
                 <input
                   type="text"
                   placeholder="000000"
@@ -146,33 +203,84 @@ export default function LoginPage() {
               <button
                 type="submit"
                 disabled={loading}
-                className="w-full py-2.5 bg-brand-500 hover:bg-brand-600 disabled:opacity-50 disabled:hover:bg-brand-500 rounded-xl text-sm font-semibold transition-colors cursor-pointer"
+                className="w-full py-2.5 bg-brand-500 hover:bg-brand-600 disabled:opacity-50 rounded-xl text-sm font-semibold transition-colors cursor-pointer"
               >
-                {loading ? (
-                  <span className="inline-flex items-center gap-2">
-                    <svg className="animate-spin h-4 w-4" viewBox="0 0 24 24">
-                      <circle className="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" strokeWidth="4" fill="none"/>
-                      <path className="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4z"/>
-                    </svg>
-                    Verifying...
-                  </span>
-                ) : "Sign In"}
+                {loading ? <Spinner text="Verifying..." /> : "Verify & Sign In"}
               </button>
+              <BackButton onClick={() => { reset(); setMode("otp_email"); }} label="Resend code" />
+            </form>
+          )}
+
+          {/* Mode: Password login */}
+          {mode === "password" && (
+            <form onSubmit={handlePasswordLogin} className="space-y-4">
+              <div>
+                <label className="block text-xs font-medium text-text-secondary mb-1.5">Email</label>
+                <input
+                  type="email"
+                  value={email}
+                  onChange={(e) => setEmail(e.target.value)}
+                  required
+                  className="w-full px-3.5 py-2.5 bg-surface-2 border border-border rounded-xl text-sm focus:outline-none focus:border-brand-500/50 focus:ring-1 focus:ring-brand-500/20 transition-all"
+                />
+              </div>
+              <div>
+                <label className="block text-xs font-medium text-text-secondary mb-1.5">Password</label>
+                <input
+                  type="password"
+                  placeholder="Enter your password"
+                  value={password}
+                  onChange={(e) => setPassword(e.target.value)}
+                  required
+                  autoFocus
+                  className="w-full px-3.5 py-2.5 bg-surface-2 border border-border rounded-xl text-sm placeholder:text-text-muted focus:outline-none focus:border-brand-500/50 focus:ring-1 focus:ring-brand-500/20 transition-all"
+                />
+              </div>
               <button
-                type="button"
-                onClick={() => { setStep("email"); setCode(""); setError(""); }}
-                className="w-full py-2 text-text-muted hover:text-text-secondary text-xs transition-colors cursor-pointer"
+                type="submit"
+                disabled={loading}
+                className="w-full py-2.5 bg-brand-500 hover:bg-brand-600 disabled:opacity-50 rounded-xl text-sm font-semibold transition-colors cursor-pointer"
               >
-                Use a different email
+                {loading ? <Spinner text="Signing in..." /> : "Sign In"}
               </button>
+              <div className="flex items-center justify-between">
+                <BackButton onClick={() => { reset(); setMode("choose"); }} />
+                <button
+                  type="button"
+                  onClick={() => { reset(); setMode("otp_email"); }}
+                  className="text-xs text-text-muted hover:text-brand-400 transition-colors cursor-pointer"
+                >
+                  Forgot password?
+                </button>
+              </div>
             </form>
           )}
         </div>
-
-        <p className="text-center text-text-muted text-xs mt-6">
-          No password needed. We&apos;ll send a one-time code.
-        </p>
       </div>
     </div>
+  );
+}
+
+function Spinner({ text }: { text: string }) {
+  return (
+    <span className="inline-flex items-center gap-2">
+      <svg className="animate-spin h-4 w-4" viewBox="0 0 24 24">
+        <circle className="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" strokeWidth="4" fill="none"/>
+        <path className="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4z"/>
+      </svg>
+      {text}
+    </span>
+  );
+}
+
+function BackButton({ onClick, label = "Back" }: { onClick: () => void; label?: string }) {
+  return (
+    <button
+      type="button"
+      onClick={onClick}
+      className="text-xs text-text-muted hover:text-text-secondary transition-colors cursor-pointer"
+    >
+      {label}
+    </button>
   );
 }

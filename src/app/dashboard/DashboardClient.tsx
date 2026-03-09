@@ -11,6 +11,7 @@ interface UserInfo {
   subscriptionActive: boolean;
   subscriptionExpiresAt: string | null;
   isActive: boolean;
+  hasPassword: boolean;
 }
 
 interface MonitorInfo {
@@ -102,6 +103,11 @@ export default function DashboardClient({
   const [detectedChats, setDetectedChats] = useState<DetectedChat[]>([]);
   const [detectingChats, setDetectingChats] = useState(false);
   const [showManualInput, setShowManualInput] = useState(false);
+  const [newPassword, setNewPassword] = useState("");
+  const [confirmPassword, setConfirmPassword] = useState("");
+  const [passwordSaved, setPasswordSaved] = useState(false);
+  const [passwordError, setPasswordError] = useState("");
+  const [hasPassword, setHasPassword] = useState(user.hasPassword);
 
   const trialEnd = new Date(user.trialExpiresAt);
   const now = new Date();
@@ -213,6 +219,39 @@ export default function DashboardClient({
   async function logout() {
     await fetch("/api/auth/logout", { method: "POST" });
     router.push("/login");
+  }
+
+  async function handleSetPassword(e: React.FormEvent) {
+    e.preventDefault();
+    setPasswordError("");
+    setPasswordSaved(false);
+
+    if (newPassword.length < 6) {
+      setPasswordError("Password must be at least 6 characters");
+      return;
+    }
+    if (newPassword !== confirmPassword) {
+      setPasswordError("Passwords do not match");
+      return;
+    }
+
+    const res = await fetch("/api/auth/set-password", {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({ password: newPassword }),
+    });
+
+    if (!res.ok) {
+      const data = await res.json();
+      setPasswordError(data.error);
+      return;
+    }
+
+    setPasswordSaved(true);
+    setHasPassword(true);
+    setNewPassword("");
+    setConfirmPassword("");
+    setTimeout(() => setPasswordSaved(false), 3000);
   }
 
   function getChatLabel(id: string): string {
@@ -545,6 +584,73 @@ export default function DashboardClient({
               ))}
             </div>
           )}
+        </div>
+      </section>
+
+      {/* Account Security */}
+      <section className="rounded-2xl border border-border bg-surface-1 overflow-hidden">
+        <div className="px-6 py-4 border-b border-border flex items-center gap-2.5">
+          <svg width="18" height="18" viewBox="0 0 24 24" fill="none" className="text-brand-400" stroke="currentColor" strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round">
+            <rect x="3" y="11" width="18" height="11" rx="2" ry="2"/>
+            <path d="M7 11V7a5 5 0 0110 0v4"/>
+          </svg>
+          <h2 className="text-sm font-semibold">Account Security</h2>
+          {hasPassword && (
+            <span className="ml-auto text-[11px] text-success bg-success/10 border border-success/20 px-2 py-0.5 rounded-md font-medium">
+              Password set
+            </span>
+          )}
+        </div>
+        <div className="p-6">
+          <p className="text-xs text-text-muted mb-4">
+            {hasPassword ? "Update your login password." : "Set a password so you can sign in without email code."}
+          </p>
+
+          {passwordError && (
+            <div className="mb-4 flex items-center gap-2 p-3 bg-danger/5 border border-danger/15 rounded-xl text-danger text-sm animate-slide-in">
+              <svg width="14" height="14" viewBox="0 0 16 16" fill="currentColor" className="shrink-0">
+                <path d="M8 1a7 7 0 100 14A7 7 0 008 1zm-.75 4a.75.75 0 011.5 0v3a.75.75 0 01-1.5 0V5zM8 11.5a.75.75 0 100-1.5.75.75 0 000 1.5z"/>
+              </svg>
+              {passwordError}
+            </div>
+          )}
+
+          <form onSubmit={handleSetPassword} className="space-y-3">
+            <div>
+              <label className="block text-xs font-medium text-text-secondary mb-1.5">
+                {hasPassword ? "New password" : "Password"}
+              </label>
+              <input
+                type="password"
+                placeholder="At least 6 characters"
+                value={newPassword}
+                onChange={(e) => setNewPassword(e.target.value)}
+                required
+                className="w-full px-3.5 py-2.5 bg-surface-2 border border-border rounded-xl text-sm placeholder:text-text-muted focus:outline-none focus:border-brand-500/50 focus:ring-1 focus:ring-brand-500/20 transition-all"
+              />
+            </div>
+            <div>
+              <label className="block text-xs font-medium text-text-secondary mb-1.5">Confirm password</label>
+              <input
+                type="password"
+                placeholder="Re-enter password"
+                value={confirmPassword}
+                onChange={(e) => setConfirmPassword(e.target.value)}
+                required
+                className="w-full px-3.5 py-2.5 bg-surface-2 border border-border rounded-xl text-sm placeholder:text-text-muted focus:outline-none focus:border-brand-500/50 focus:ring-1 focus:ring-brand-500/20 transition-all"
+              />
+            </div>
+            <button
+              type="submit"
+              className={`w-full py-2.5 rounded-xl text-sm font-semibold transition-all cursor-pointer ${
+                passwordSaved
+                  ? "bg-success/10 text-success border border-success/20"
+                  : "bg-brand-500 hover:bg-brand-600 text-white"
+              }`}
+            >
+              {passwordSaved ? "Password Saved" : hasPassword ? "Update Password" : "Set Password"}
+            </button>
+          </form>
         </div>
       </section>
 

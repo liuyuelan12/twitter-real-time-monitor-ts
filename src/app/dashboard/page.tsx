@@ -18,6 +18,7 @@ export default async function DashboardPage() {
         subscriptionActive: user.subscriptionActive,
         subscriptionExpiresAt: user.subscriptionExpiresAt?.toISOString() ?? null,
         isActive: active,
+        hasPassword: !!user.passwordHash,
       }}
       monitors={user.monitors.map((m) => ({
         id: m.id,
