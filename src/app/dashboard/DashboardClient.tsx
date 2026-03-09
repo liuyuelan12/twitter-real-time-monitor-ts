@@ -33,6 +33,8 @@ export default function DashboardClient({
   const [chatId, setChatId] = useState(user.chatId);
   const [configSaved, setConfigSaved] = useState(false);
   const [error, setError] = useState("");
+  const [detectedChats, setDetectedChats] = useState<{ id: number; title: string; username?: string; type: string }[]>([]);
+  const [detectingChats, setDetectingChats] = useState(false);
 
   const trialEnd = new Date(user.trialExpiresAt);
   const now = new Date();
@@ -80,6 +82,32 @@ export default function DashboardClient({
   async function deleteMonitor(id: string) {
     await fetch(`/api/monitors/${id}`, { method: "DELETE" });
     setMonitors(monitors.filter((m) => m.id !== id));
+  }
+
+  async function detectChats() {
+    setDetectingChats(true);
+    setDetectedChats([]);
+
+    const res = await fetch("/api/telegram/chats", {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({ botToken: botToken || undefined }),
+    });
+
+    const data = await res.json();
+    setDetectingChats(false);
+
+    if (!res.ok) {
+      setError(data.error);
+      return;
+    }
+
+    if (data.chats.length === 0) {
+      setError("No groups found. Add the bot to a group, send a message, then try again.");
+      return;
+    }
+
+    setDetectedChats(data.chats);
   }
 
   async function saveConfig(e: React.FormEvent) {
@@ -146,16 +174,11 @@ export default function DashboardClient({
       {/* Telegram Config */}
       <div className="p-6 bg-gray-900 rounded-xl space-y-4">
         <h2 className="text-lg font-semibold">Telegram Configuration</h2>
-        <p className="text-sm text-gray-400">
-          Get a Bot Token from{" "}
-          <a href="https://t.me/BotFather" target="_blank" className="text-blue-400 hover:underline">
-            @BotFather
-          </a>{" "}
-          and your Chat ID from{" "}
-          <a href="https://t.me/userinfobot" target="_blank" className="text-blue-400 hover:underline">
-            @userinfobot
-          </a>
-        </p>
+        <div className="text-sm text-gray-400 space-y-1">
+          <p>1. Get a Bot Token from <a href="https://t.me/BotFather" target="_blank" className="text-blue-400 hover:underline">@BotFather</a></p>
+          <p>2. Add the bot to your group/channel and make it admin</p>
+          <p>3. Send any message in the group, then click "Detect Groups"</p>
+        </div>
         <form onSubmit={saveConfig} className="space-y-3">
           <input
             type="text"
@@ -164,13 +187,52 @@ export default function DashboardClient({
             onChange={(e) => setBotToken(e.target.value)}
             className="w-full px-4 py-2.5 bg-gray-800 border border-gray-700 rounded-lg text-sm focus:outline-none focus:border-blue-500 transition"
           />
-          <input
-            type="text"
-            placeholder="Chat ID (e.g., -1001234567890)"
-            value={chatId}
-            onChange={(e) => setChatId(e.target.value)}
-            className="w-full px-4 py-2.5 bg-gray-800 border border-gray-700 rounded-lg text-sm focus:outline-none focus:border-blue-500 transition"
-          />
+
+          <div className="flex gap-2">
+            <div className="flex-1 relative">
+              {detectedChats.length > 0 ? (
+                <select
+                  value={chatId}
+                  onChange={(e) => setChatId(e.target.value)}
+                  className="w-full px-4 py-2.5 bg-gray-800 border border-gray-700 rounded-lg text-sm focus:outline-none focus:border-blue-500 transition appearance-none"
+                >
+                  <option value="">Select a group...</option>
+                  {detectedChats.map((c) => (
+                    <option key={c.id} value={String(c.id)}>
+                      {c.title} ({c.type}) [{c.id}]
+                    </option>
+                  ))}
+                </select>
+              ) : (
+                <input
+                  type="text"
+                  placeholder="Chat ID (click Detect Groups or enter manually)"
+                  value={chatId}
+                  onChange={(e) => setChatId(e.target.value)}
+                  className="w-full px-4 py-2.5 bg-gray-800 border border-gray-700 rounded-lg text-sm focus:outline-none focus:border-blue-500 transition"
+                />
+              )}
+            </div>
+            <button
+              type="button"
+              onClick={detectChats}
+              disabled={detectingChats}
+              className="px-4 py-2.5 bg-gray-700 hover:bg-gray-600 disabled:opacity-50 rounded-lg text-sm font-semibold transition whitespace-nowrap"
+            >
+              {detectingChats ? "Detecting..." : "Detect Groups"}
+            </button>
+          </div>
+
+          {detectedChats.length > 0 && (
+            <button
+              type="button"
+              onClick={() => { setDetectedChats([]); setChatId(""); }}
+              className="text-xs text-gray-500 hover:text-gray-300 transition"
+            >
+              Enter Chat ID manually instead
+            </button>
+          )}
+
           <button
             type="submit"
             className="px-6 py-2.5 bg-gray-700 hover:bg-gray-600 rounded-lg text-sm font-semibold transition"
