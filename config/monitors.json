@@ -1,0 +1,10 @@
+{
+  "monitors": [
+    {
+      "username": "BitFlashNetwork",
+      "telegramChatId": "",
+      "enabled": true
+    }
+  ],
+  "pollingIntervalMs": 60000
+}
