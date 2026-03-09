@@ -4,7 +4,8 @@
   "description": "Twitter real-time monitor SaaS - forwards tweets to Telegram",
   "scripts": {
     "dev": "next dev",
-    "build": "next build",
+    "postinstall": "prisma generate",
+    "build": "prisma generate && prisma db push && next build",
     "start": "next start",
     "worker": "npx ts-node-dev --respawn src/worker/index.ts",
     "db:generate": "prisma generate",
