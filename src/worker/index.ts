@@ -2,6 +2,7 @@ import "dotenv/config";
 import { PrismaClient } from "@prisma/client";
 import { TwitterService } from "../services/twitterService";
 import { TelegramService } from "../services/telegramService";
+import { TweetData } from "../types";
 import { logger } from "../utils/logger";
 
 const prisma = new PrismaClient();
@@ -69,10 +70,66 @@ async function pollAllMonitors(): Promise<void> {
           continue;
         }
 
+        // Collect new tweets
+        const newTweets: TweetData[] = [];
         for (const tweet of tweets) {
           if (seen.has(tweet.id)) continue;
           seen.add(tweet.id);
+          newTweets.push(tweet);
+        }
 
+        // Group threads: tweets with same conversationId where the user replies to themselves
+        const threads = new Map<string, TweetData[]>();
+        const standalone: TweetData[] = [];
+
+        for (const tweet of newTweets) {
+          const isThreadReply =
+            tweet.conversationId &&
+            tweet.inReplyToId &&
+            !tweet.isRetweet &&
+            tweet.username.toLowerCase() === monitor.twitterUsername.toLowerCase();
+
+          if (isThreadReply) {
+            const group = threads.get(tweet.conversationId!) ?? [];
+            group.push(tweet);
+            threads.set(tweet.conversationId!, group);
+          } else if (
+            tweet.conversationId &&
+            tweet.conversationId === tweet.id &&
+            !tweet.isRetweet
+          ) {
+            // This could be the first tweet in a thread - check if other new tweets reference it
+            const group = threads.get(tweet.conversationId) ?? [];
+            group.push(tweet);
+            threads.set(tweet.conversationId, group);
+          } else {
+            standalone.push(tweet);
+          }
+        }
+
+        // Send threads (only groups with 2+ tweets)
+        for (const [convId, threadTweets] of threads) {
+          if (threadTweets.length < 2) {
+            // Not actually a thread, send as standalone
+            standalone.push(...threadTweets);
+            continue;
+          }
+
+          for (const chatId of chatIds) {
+            try {
+              await telegramService.sendThread(chatId, threadTweets);
+              logger.info(`Forwarded thread (${threadTweets.length} tweets, conv ${convId}) (@${monitor.twitterUsername}) -> ${user.email} [${chatId}]`);
+              await sleep(1500);
+            } catch (err: any) {
+              logger.error(`Failed to forward thread to ${chatId} for ${user.email}`, {
+                error: err?.message || String(err),
+              });
+            }
+          }
+        }
+
+        // Send standalone tweets
+        for (const tweet of standalone) {
           for (const chatId of chatIds) {
             try {
               await telegramService.sendTweet(chatId, tweet);

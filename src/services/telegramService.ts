@@ -75,6 +75,80 @@ export class TelegramService {
     }
   }
 
+  async sendThread(chatId: string, tweets: readonly TweetData[]): Promise<void> {
+    try {
+      const sorted = [...tweets].sort(
+        (a, b) => a.createdAt.getTime() - b.createdAt.getTime(),
+      );
+
+      const parts: string[] = [];
+      parts.push(`<b>🧵 Thread by @${escapeHtml(sorted[0].username)}</b>`);
+      parts.push("");
+
+      const allMedia: TweetData["media"][number][] = [];
+
+      for (let i = 0; i < sorted.length; i++) {
+        const t = sorted[i];
+        parts.push(`<b>[${i + 1}/${sorted.length}]</b>`);
+        parts.push(escapeHtml(t.text));
+
+        if (t.quotedTweet) {
+          parts.push(
+            `<blockquote>Quote from <b>@${escapeHtml(t.quotedTweet.username)}</b>\n${escapeHtml(t.quotedTweet.text)}</blockquote>`,
+          );
+        }
+
+        parts.push("");
+        allMedia.push(...t.media);
+      }
+
+      parts.push(
+        `<a href="${sorted[0].tweetUrl}">View thread on Twitter</a>`,
+      );
+
+      const message = parts.join("\n");
+
+      if (allMedia.length === 0) {
+        await this.sendTextMessage(chatId, message);
+      } else if (allMedia.length === 1) {
+        const m = allMedia[0];
+        if (m.type === "photo") {
+          await this.bot.sendPhoto(chatId, m.url, {
+            caption: message,
+            parse_mode: "HTML",
+          });
+        } else {
+          await this.bot.sendVideo(chatId, m.url, {
+            caption: message,
+            parse_mode: "HTML",
+          });
+        }
+      } else {
+        const mediaGroup: TelegramBot.InputMedia[] = allMedia.map((m, i) => {
+          const base: any = {
+            type: m.type === "photo" ? "photo" : "video",
+            media: m.url,
+          };
+          if (i === 0) {
+            base.caption = message;
+            base.parse_mode = "HTML";
+          }
+          return base;
+        });
+        await this.bot.sendMediaGroup(chatId, mediaGroup);
+      }
+
+      logger.info(
+        `Sent thread (${sorted.length} tweets) to chat ${chatId}`,
+      );
+    } catch (err) {
+      logger.error(`Failed to send thread to chat ${chatId}`, {
+        error: err instanceof Error ? err.message : String(err),
+      });
+      throw err;
+    }
+  }
+
   private async sendMediaGroup(chatId: string, tweet: TweetData, caption: string): Promise<void> {
     const mediaGroup: TelegramBot.InputMedia[] = tweet.media.map((m, i) => {
       const base: any = {

@@ -208,6 +208,9 @@ export class TwitterService {
 
       const fullText = legacy.full_text ?? "";
 
+      const conversationId = legacy.conversation_id_str ?? undefined;
+      const inReplyToId = legacy.in_reply_to_status_id_str ?? undefined;
+
       return {
         id: tweetData.rest_id,
         text: fullText,
@@ -218,6 +221,8 @@ export class TwitterService {
         retweetedUser,
         quotedTweet,
         tweetUrl: `https://twitter.com/${username}/status/${tweetData.rest_id}`,
+        conversationId,
+        inReplyToId,
       };
     } catch (err) {
       logger.error("Failed to parse tweet result", {

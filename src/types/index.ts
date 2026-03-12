@@ -36,4 +36,6 @@ export interface TweetData {
     readonly username: string;
   };
   readonly tweetUrl: string;
+  readonly conversationId?: string;
+  readonly inReplyToId?: string;
 }
