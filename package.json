@@ -6,8 +6,8 @@
     "dev": "next dev",
     "postinstall": "prisma generate",
     "build": "prisma generate && next build",
-    "start": "prisma db push && next start",
-    "worker": "npx ts-node-dev --respawn src/worker/index.ts",
+    "start": "prisma db push && next start & npx tsx src/worker/index.ts & wait",
+    "worker": "npx tsx src/worker/index.ts",
     "db:generate": "prisma generate",
     "db:push": "prisma db push",
     "db:studio": "prisma studio"
