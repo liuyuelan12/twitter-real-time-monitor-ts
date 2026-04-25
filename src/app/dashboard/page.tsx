@@ -24,6 +24,7 @@ export default async function DashboardPage() {
         id: m.id,
         twitterUsername: m.twitterUsername,
         enabled: m.enabled,
+        telegramTopicId: m.telegramTopicId,
       }))}
     />
   );

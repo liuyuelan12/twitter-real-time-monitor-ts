@@ -117,8 +117,8 @@ async function pollAllMonitors(): Promise<void> {
 
           for (const chatId of chatIds) {
             try {
-              await telegramService.sendThread(chatId, threadTweets);
-              logger.info(`Forwarded thread (${threadTweets.length} tweets, conv ${convId}) (@${monitor.twitterUsername}) -> ${user.email} [${chatId}]`);
+              await telegramService.sendThread(chatId, threadTweets, monitor.telegramTopicId);
+              logger.info(`Forwarded thread (${threadTweets.length} tweets, conv ${convId}) (@${monitor.twitterUsername}) -> ${user.email} [${chatId}${monitor.telegramTopicId ? `:topic ${monitor.telegramTopicId}` : ""}]`);
               await sleep(1500);
             } catch (err: any) {
               logger.error(`Failed to forward thread to ${chatId} for ${user.email}`, {
@@ -132,8 +132,8 @@ async function pollAllMonitors(): Promise<void> {
         for (const tweet of standalone) {
           for (const chatId of chatIds) {
             try {
-              await telegramService.sendTweet(chatId, tweet);
-              logger.info(`Forwarded tweet ${tweet.id} (@${monitor.twitterUsername}) -> ${user.email} [${chatId}]`);
+              await telegramService.sendTweet(chatId, tweet, monitor.telegramTopicId);
+              logger.info(`Forwarded tweet ${tweet.id} (@${monitor.twitterUsername}) -> ${user.email} [${chatId}${monitor.telegramTopicId ? `:topic ${monitor.telegramTopicId}` : ""}]`);
               await sleep(1500);
             } catch (err: any) {
               logger.error(`Failed to forward tweet ${tweet.id} to ${chatId} for ${user.email}`, {

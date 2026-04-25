@@ -33,12 +33,13 @@ model Otp {
 }
 
 model Monitor {
-  id              String   @id @default(cuid())
-  userId          String
-  twitterUsername String
-  enabled         Boolean  @default(true)
-  createdAt       DateTime @default(now())
-  user            User     @relation(fields: [userId], references: [id], onDelete: Cascade)
+  id               String   @id @default(cuid())
+  userId           String
+  twitterUsername  String
+  enabled          Boolean  @default(true)
+  telegramTopicId  Int?
+  createdAt        DateTime @default(now())
+  user             User     @relation(fields: [userId], references: [id], onDelete: Cascade)
 
   @@unique([userId, twitterUsername])
 }

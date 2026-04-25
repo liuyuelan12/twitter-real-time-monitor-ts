@@ -1,6 +1,7 @@
 import { NextRequest, NextResponse } from "next/server";
 import { prisma } from "@/lib/prisma";
 import { getSession } from "@/lib/auth";
+import { parseTopicId } from "@/lib/topicId";
 
 export async function PATCH(request: NextRequest, { params }: { params: Promise<{ id: string }> }) {
   const session = await getSession();
@@ -17,11 +18,23 @@ export async function PATCH(request: NextRequest, { params }: { params: Promise<
     return NextResponse.json({ error: "Monitor not found" }, { status: 404 });
   }
 
+  const updateData: Record<string, unknown> = {};
+
+  if (body.enabled !== undefined) {
+    updateData.enabled = body.enabled;
+  }
+
+  if (body.telegramTopicId !== undefined) {
+    const parsed = parseTopicId(body.telegramTopicId);
+    if (parsed === "invalid") {
+      return NextResponse.json({ error: "Invalid Telegram topic id" }, { status: 400 });
+    }
+    updateData.telegramTopicId = parsed;
+  }
+
   const updated = await prisma.monitor.update({
     where: { id },
-    data: {
-      enabled: body.enabled ?? monitor.enabled,
-    },
+    data: updateData,
   });
 
   return NextResponse.json(updated);

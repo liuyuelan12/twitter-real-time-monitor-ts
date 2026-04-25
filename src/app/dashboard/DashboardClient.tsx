@@ -20,6 +20,7 @@ interface MonitorInfo {
   id: string;
   twitterUsername: string;
   enabled: boolean;
+  telegramTopicId: number | null;
 }
 
 interface DetectedChat {
@@ -93,6 +94,17 @@ function IconSearch() {
   );
 }
 
+function IconHash() {
+  return (
+    <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round">
+      <line x1="4" y1="9" x2="20" y2="9"></line>
+      <line x1="4" y1="15" x2="20" y2="15"></line>
+      <line x1="10" y1="3" x2="8" y2="21"></line>
+      <line x1="16" y1="3" x2="14" y2="21"></line>
+    </svg>
+  );
+}
+
 export default function DashboardClient({
   user,
   monitors: initialMonitors,
@@ -104,6 +116,9 @@ export default function DashboardClient({
   const { t } = useLanguage();
   const [monitors, setMonitors] = useState(initialMonitors);
   const [newUsername, setNewUsername] = useState("");
+  const [newTopicId, setNewTopicId] = useState("");
+  const [editingMonitorId, setEditingMonitorId] = useState<string | null>(null);
+  const [editingTopicValue, setEditingTopicValue] = useState("");
   const [botToken, setBotToken] = useState("");
   const [selectedChatIds, setSelectedChatIds] = useState<string[]>(user.chatIds);
   const [manualChatId, setManualChatId] = useState("");
@@ -155,7 +170,10 @@ export default function DashboardClient({
     const res = await fetch("/api/monitors", {
       method: "POST",
       headers: { "Content-Type": "application/json" },
-      body: JSON.stringify({ twitterUsername: newUsername }),
+      body: JSON.stringify({
+        twitterUsername: newUsername,
+        telegramTopicId: newTopicId.trim() || undefined,
+      }),
     });
 
     const data = await res.json();
@@ -165,8 +183,48 @@ export default function DashboardClient({
       return;
     }
 
-    setMonitors([{ id: data.id, twitterUsername: data.twitterUsername, enabled: data.enabled }, ...monitors]);
+    setMonitors([
+      {
+        id: data.id,
+        twitterUsername: data.twitterUsername,
+        enabled: data.enabled,
+        telegramTopicId: data.telegramTopicId ?? null,
+      },
+      ...monitors,
+    ]);
     setNewUsername("");
+    setNewTopicId("");
+  }
+
+  async function saveMonitorTopic(id: string) {
+    setError("");
+    const res = await fetch(`/api/monitors/${id}`, {
+      method: "PATCH",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({ telegramTopicId: editingTopicValue.trim() || null }),
+    });
+    const data = await res.json();
+    if (!res.ok) {
+      setError(data.error);
+      return;
+    }
+    setMonitors(
+      monitors.map((m) =>
+        m.id === id ? { ...m, telegramTopicId: data.telegramTopicId ?? null } : m,
+      ),
+    );
+    setEditingMonitorId(null);
+    setEditingTopicValue("");
+  }
+
+  function startEditTopic(m: MonitorInfo) {
+    setEditingMonitorId(m.id);
+    setEditingTopicValue(m.telegramTopicId != null ? String(m.telegramTopicId) : "");
+  }
+
+  function cancelEditTopic() {
+    setEditingMonitorId(null);
+    setEditingTopicValue("");
   }
 
   async function toggleMonitor(id: string, enabled: boolean) {
@@ -535,24 +593,39 @@ export default function DashboardClient({
           </div>
 
           <div className="p-8 space-y-6">
-            <form onSubmit={addMonitor} className="flex gap-3">
-              <div className="relative flex-1">
-                <span className="absolute left-4 top-1/2 -translate-y-1/2 text-text-muted font-bold">@</span>
+            <form onSubmit={addMonitor} className="space-y-3">
+              <div className="flex gap-3">
+                <div className="relative flex-1">
+                  <span className="absolute left-4 top-1/2 -translate-y-1/2 text-text-muted font-bold">@</span>
+                  <input
+                    type="text"
+                    placeholder={t.dashboard.username}
+                    value={newUsername}
+                    onChange={(e) => setNewUsername(e.target.value)}
+                    required
+                    className="w-full pl-9 pr-4 py-3 bg-surface-2 border border-border rounded-xl text-sm font-medium focus:outline-none focus:border-brand-500 focus:ring-4 focus:ring-brand-500/10 transition-all"
+                  />
+                </div>
+                <button
+                  type="submit"
+                  className="px-6 py-3 bg-brand-500 hover:bg-brand-600 rounded-xl text-sm font-bold transition-all shadow-lg shadow-brand-500/25 flex items-center gap-2"
+                >
+                  <IconPlus /> {t.dashboard.add}
+                </button>
+              </div>
+              <div className="relative">
+                <span className="absolute left-4 top-1/2 -translate-y-1/2 text-text-muted">
+                  <IconHash />
+                </span>
                 <input
                   type="text"
-                  placeholder={t.dashboard.username}
-                  value={newUsername}
-                  onChange={(e) => setNewUsername(e.target.value)}
-                  required
-                  className="w-full pl-9 pr-4 py-3 bg-surface-2 border border-border rounded-xl text-sm font-medium focus:outline-none focus:border-brand-500 focus:ring-4 focus:ring-brand-500/10 transition-all"
+                  placeholder={t.dashboard.topicIdPlaceholder}
+                  value={newTopicId}
+                  onChange={(e) => setNewTopicId(e.target.value)}
+                  className="w-full pl-10 pr-4 py-2.5 bg-surface-2 border border-border rounded-xl text-sm font-mono placeholder:text-text-muted focus:outline-none focus:border-brand-500/50 focus:ring-1 focus:ring-brand-500/20 transition-all"
                 />
               </div>
-              <button
-                type="submit"
-                className="px-6 py-3 bg-brand-500 hover:bg-brand-600 rounded-xl text-sm font-bold transition-all shadow-lg shadow-brand-500/25 flex items-center gap-2"
-              >
-                <IconPlus /> {t.dashboard.add}
-              </button>
+              <p className="text-[11px] text-text-muted leading-relaxed pl-1">{t.dashboard.topicIdHint}</p>
             </form>
 
             {monitors.length === 0 ? (
@@ -568,31 +641,79 @@ export default function DashboardClient({
                 {monitors.map((m, i) => (
                   <div
                     key={m.id}
-                    className="group flex items-center justify-between p-4 rounded-2xl bg-surface-2/40 border border-white/5 hover:border-brand-500/30 hover:bg-brand-500/[0.03] transition-all animate-fade-in"
+                    className="group p-4 rounded-2xl bg-surface-2/40 border border-white/5 hover:border-brand-500/30 hover:bg-brand-500/[0.03] transition-all animate-fade-in"
                     style={{ animationDelay: `${i * 50}ms` }}
                   >
-                    <div className="flex items-center gap-4">
-                      <button
-                        onClick={() => toggleMonitor(m.id, !m.enabled)}
-                        className={`relative w-11 h-6 rounded-full transition-all cursor-pointer ${m.enabled ? "bg-brand-500" : "bg-surface-4 shadow-inner"
-                          }`}
-                      >
-                        <div
-                          className={`absolute top-1 w-4 h-4 bg-white rounded-full shadow-lg transition-transform ${m.enabled ? "translate-x-6" : "translate-x-1"
+                    <div className="flex items-center justify-between">
+                      <div className="flex items-center gap-4 min-w-0">
+                        <button
+                          onClick={() => toggleMonitor(m.id, !m.enabled)}
+                          className={`relative w-11 h-6 rounded-full transition-all cursor-pointer shrink-0 ${m.enabled ? "bg-brand-500" : "bg-surface-4 shadow-inner"
                             }`}
-                        />
-                      </button>
-                      <span className={`text-base font-bold transition-colors ${m.enabled ? "text-text-primary" : "text-text-muted"
-                        }`}>
-                        @{m.twitterUsername}
-                      </span>
+                        >
+                          <div
+                            className={`absolute top-1 w-4 h-4 bg-white rounded-full shadow-lg transition-transform ${m.enabled ? "translate-x-6" : "translate-x-1"
+                              }`}
+                          />
+                        </button>
+                        <span className={`text-base font-bold transition-colors truncate ${m.enabled ? "text-text-primary" : "text-text-muted"
+                          }`}>
+                          @{m.twitterUsername}
+                        </span>
+                        {m.telegramTopicId != null && editingMonitorId !== m.id && (
+                          <span className="inline-flex items-center gap-1 px-2 py-0.5 bg-brand-500/8 border border-brand-500/15 rounded-md text-[11px] font-mono text-brand-400">
+                            <IconHash /> {m.telegramTopicId}
+                          </span>
+                        )}
+                      </div>
+                      <div className="flex items-center gap-1">
+                        {editingMonitorId !== m.id && (
+                          <button
+                            onClick={() => startEditTopic(m)}
+                            className="opacity-0 group-hover:opacity-100 p-2 rounded-xl hover:bg-brand-500/10 text-text-muted hover:text-brand-400 transition-all cursor-pointer"
+                            title={t.dashboard.editTopic}
+                          >
+                            <IconHash />
+                          </button>
+                        )}
+                        <button
+                          onClick={() => deleteMonitor(m.id)}
+                          className="opacity-0 group-hover:opacity-100 p-2 rounded-xl hover:bg-danger/10 text-text-muted hover:text-danger transition-all cursor-pointer"
+                        >
+                          <IconTrash />
+                        </button>
+                      </div>
                     </div>
-                    <button
-                      onClick={() => deleteMonitor(m.id)}
-                      className="opacity-0 group-hover:opacity-100 p-2 rounded-xl hover:bg-danger/10 text-text-muted hover:text-danger transition-all cursor-pointer"
-                    >
-                      <IconTrash />
-                    </button>
+                    {editingMonitorId === m.id && (
+                      <div className="mt-3 flex gap-2 animate-fade-in">
+                        <input
+                          type="text"
+                          autoFocus
+                          placeholder={t.dashboard.topicIdPlaceholder}
+                          value={editingTopicValue}
+                          onChange={(e) => setEditingTopicValue(e.target.value)}
+                          onKeyDown={(e) => {
+                            if (e.key === "Enter") saveMonitorTopic(m.id);
+                            if (e.key === "Escape") cancelEditTopic();
+                          }}
+                          className="flex-1 px-3.5 py-2 bg-surface-2 border border-border rounded-xl text-sm font-mono placeholder:text-text-muted focus:outline-none focus:border-brand-500/50 focus:ring-1 focus:ring-brand-500/20 transition-all"
+                        />
+                        <button
+                          type="button"
+                          onClick={() => saveMonitorTopic(m.id)}
+                          className="px-3.5 py-2 bg-brand-500 hover:bg-brand-600 text-white rounded-xl text-sm font-medium transition-colors cursor-pointer"
+                        >
+                          {t.dashboard.saveTopic}
+                        </button>
+                        <button
+                          type="button"
+                          onClick={cancelEditTopic}
+                          className="px-3.5 py-2 bg-surface-3 hover:bg-surface-4 border border-border rounded-xl text-sm transition-colors cursor-pointer"
+                        >
+                          {t.dashboard.cancelEdit}
+                        </button>
+                      </div>
+                    )}
                   </div>
                 ))}
               </div>
